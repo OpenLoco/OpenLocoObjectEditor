@@ -18,6 +18,7 @@ namespace OpenLoco.Gui.ViewModels
 			_Settings = settings;
 
 			AutoObjectDiscoveryAndUpload = settings.AutoObjectDiscoveryAndUpload;
+			AutoUpdate = AutoUpdate;
 			UseHttps = settings.UseHttps;
 			ServerAddressHttp = settings.ServerAddressHttp;
 			ServerAddressHttps = settings.ServerAddressHttps;
@@ -28,6 +29,7 @@ namespace OpenLoco.Gui.ViewModels
 
 		public void Commit()
 		{
+			_Settings.AutoUpdate = AutoUpdate;
 			_Settings.AutoObjectDiscoveryAndUpload = AutoObjectDiscoveryAndUpload;
 			_Settings.UseHttps = UseHttps;
 			_Settings.ServerAddressHttp = ServerAddressHttp;
@@ -36,6 +38,13 @@ namespace OpenLoco.Gui.ViewModels
 			_Settings.ObjDataDirectory = ObjDataDirectory;
 			_Settings.ObjDataDirectories = ObjDataDirectories.ToHashSet();
 		}
+
+		#region Editor
+
+		[Reactive, Category("Editor Settings"), Description("If enabled, will automatically download and install the latest version of the editor from GitHub")]
+		public bool AutoUpdate { get; set; }
+
+		#endregion
 
 		#region Object Folders
 

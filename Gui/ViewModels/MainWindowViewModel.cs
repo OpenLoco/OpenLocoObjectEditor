@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Platform;
 using Avalonia.Platform.Storage;
+using OpenLoco.Common;
 using OpenLoco.Common.Logging;
 using OpenLoco.Dat;
 using OpenLoco.Dat.Data;
@@ -14,11 +15,16 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 #if !DEBUG
@@ -158,6 +164,95 @@ namespace OpenLoco.Gui.ViewModels
 			}
 #endif
 			#endregion
+		}
+
+		public async Task DownloadAndInstallAsync()
+		{
+			var platform = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "win-x64" :
+				RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "osx-x64" :
+				RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "linux-x64" :
+				throw new PlatformNotSupportedException();
+
+			await DownloadAndExtractUpdateAsync(GithubLatestReleaseAPI, platform, "");
+
+		}
+
+		public async Task DownloadAndExtractUpdateAsync(string githubReleaseApi, string platformVersion, string extractPath)
+		{
+			try
+			{
+				// 1. Download API json
+				using (var client = new HttpClient())
+				{
+					client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(GithubApplicationName, ApplicationVersion.ToString()));
+					var response = client.GetAsync(GithubLatestReleaseAPI).Result;
+					if (response.IsSuccessStatusCode)
+					{
+						var jsonResponse = response.Content.ReadAsStringAsync().Result;
+						var githubReleaseApiResponse = JsonSerializer.Deserialize<GithubReleaseApi>(jsonResponse);
+
+						ArgumentNullException.ThrowIfNull(githubReleaseApiResponse, nameof(githubReleaseApiResponse));
+
+						var tagName = githubReleaseApiResponse.TagName;
+						if (tagName != null)
+						{
+							var latestVersion = Version.Parse(tagName);
+							if (latestVersion > ApplicationVersion)
+							{
+								LatestVersionText = $"newer version exists: {latestVersion}";
+								IsUpdateAvailable = true;
+
+								var downloadUrl = githubReleaseApiResponse.Assets
+									.Where(x => x.BrowserDownloadURL.Contains(platformVersion))
+									.Single().BrowserDownloadURL;
+
+								using (var downloadMemoryStream = await DownloadUpdateAsync(downloadUrl))
+								{
+									// 2. Extract the update
+									await Task.Run(() => ZipFile.ExtractToDirectory(downloadMemoryStream, Path.GetTempPath));
+
+								}
+							}
+							else
+							{
+								LatestVersionText = "latest version";
+								IsUpdateAvailable = false;
+							}
+						}
+					}
+
+					// 2. 
+
+					// 1. Download the update
+
+
+					// 2. Extract the update
+					//await Task.Run(() => ZipFile.ExtractToDirectory(zipFilePath, extractPath));
+
+					// 3. (Optional) Delete the zip file
+					//File.Delete(zipFilePath);
+				}
+			catch (Exception ex)
+			{
+				// Handle exceptions (e.g., network errors, invalid zip file)
+				Console.WriteLine($"Error updating: {ex.Message}");
+			}
+		}
+
+		async Task<MemoryStream> DownloadUpdateAsync(string updateUrl)
+		{
+			using (var client = new HttpClient())
+			using (var response = await client.GetAsync(updateUrl, HttpCompletionOption.ResponseHeadersRead))
+			{
+				_ = response.EnsureSuccessStatusCode();
+
+				await using (var stream = await response.Content.ReadAsStreamAsync())
+				{
+					var memoryStream = new MemoryStream();
+					await stream.CopyToAsync(memoryStream);
+					return memoryStream;
+				}
+			}
 		}
 
 		public static async Task<FileSystemItem?> GetFileSystemItemFromUser(IReadOnlyList<FilePickerFileType> filetypes)
