@@ -5,6 +5,7 @@ using OpenLoco.Dat.FileParsing;
 using OpenLoco.Dat.Objects.Sound;
 using OpenLoco.Dat.Types;
 using OpenLoco.Gui.Models;
+using PropertyModels.Extensions;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using System;
@@ -99,6 +100,12 @@ namespace OpenLoco.Gui.ViewModels
 				if (CurrentObject?.LocoObject != null)
 				{
 					CurrentObjectViewModel = GetViewModelFromStruct(CurrentObject.LocoObject.Object);
+
+					//if (CurrentObjectViewModel is BuildingViewModel bvm)
+					//{
+					//	bvm.Images = G1ImageConversion.CreateAvaloniaImages(CurrentObject.Images).Cast<Avalonia.Media.IImage>().ToBindingList();
+					//}
+
 					StringTableViewModel = new(CurrentObject.LocoObject.StringTable);
 
 					var imageNameProvider = (CurrentObject.LocoObject.Object is IImageTableNameProvider itnp)

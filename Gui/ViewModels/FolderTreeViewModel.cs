@@ -151,6 +151,8 @@ namespace OpenLoco.Gui.ViewModels
 
 		async Task ReloadDirectoryAsync(bool useExistingIndex)
 		{
+			Model.Logger.Debug($"UseExistingIndex={useExistingIndex}");
+
 			if (SelectedTabIndex == 0)
 			{
 				// local
@@ -166,6 +168,8 @@ namespace OpenLoco.Gui.ViewModels
 
 		async Task LoadObjDirectoryAsync(string directory, bool useExistingIndex)
 		{
+			Model.Logger.Debug($"Directory={directory} UseExistingIndex={useExistingIndex}");
+
 			if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory))
 			{
 				//LocalDirectoryItems = [];
@@ -187,6 +191,8 @@ namespace OpenLoco.Gui.ViewModels
 				// DO NOT WEB QUERY AT DESIGN TIME
 				return;
 			}
+
+			Model.Logger.Debug($"UseExistingIndex={useExistingIndex}");
 
 			if ((!useExistingIndex || Model.ObjectIndexOnline == null) && Model.WebClient != null)
 			{

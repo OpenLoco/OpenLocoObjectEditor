@@ -23,9 +23,9 @@ namespace OpenLoco.Gui.ViewModels
 		[Reactive, Category("Cost")] public int16_t BuildCostFactor { get; set; }
 		[Reactive, Category("Cost")] public int16_t SellCostFactor { get; set; }
 		[Reactive, Category("Building"), Length(IndustryObject.AnimationSequencesCount, IndustryObject.AnimationSequencesCount)] public BindingList<BindingList<uint8_t>> AnimationSequences { get; set; }
-		[Reactive, Category("Building"), Length(1, IndustryObject.BuildingVariationCount)] public BindingList<BindingList<uint8_t>> BuildingVariations { get; set; } // NumBuildingVariations
-		[Reactive, Category("Building"), Length(1, IndustryObject.BuildingHeightCount)] public BindingList<uint8_t> BuildingHeights { get; set; } // NumBuildingParts
-		[Reactive, Category("Building"), Length(1, IndustryObject.BuildingAnimationCount)] public BindingList<BuildingPartAnimation> BuildingAnimations { get; set; } // NumBuildingParts
+		[Reactive, Category("Building"), Length(1, IndustryObject.BuildingHeightCount)] public BindingList<uint8_t> BuildingPartHeight { get; set; } // NumBuildingParts
+		[Reactive, Category("Building"), Length(1, IndustryObject.BuildingAnimationCount)] public BindingList<BuildingPartAnimation> BuildingPartAnimations { get; set; } // NumBuildingParts
+		[Reactive, Category("Building"), Length(1, IndustryObject.BuildingVariationCount)] public BindingList<BindingList<uint8_t>> BuildingVariationParts { get; set; } // NumBuildingVariations
 		[Reactive, Category("Building")] public uint8_t MinNumBuildings { get; set; }
 		[Reactive, Category("Building")] public uint8_t MaxNumBuildings { get; set; }
 		[Reactive, Category("Building")] public BindingList<uint8_t> Buildings { get; set; }
@@ -47,9 +47,9 @@ namespace OpenLoco.Gui.ViewModels
 		{
 			AnimationSequences = new(io.AnimationSequences.Select(x => new BindingList<uint8_t>(x)).ToBindingList());
 			var_38 = new(io.var_38);
-			BuildingHeights = new(io.BuildingHeights);
-			BuildingAnimations = new(io.BuildingAnimations);
-			BuildingVariations = new(io.BuildingVariations.Select(x => new BindingList<uint8_t>(x)).ToBindingList());
+			BuildingPartHeight = new(io.BuildingPartHeights);
+			BuildingPartAnimations = new(io.BuildingPartAnimations);
+			BuildingVariationParts = new(io.BuildingVariationParts.Select(x => new BindingList<uint8_t>(x)).ToBindingList());
 			Buildings = new(io.Buildings);
 			BuildingSizeFlags = io.BuildingSizeFlags;
 			BuildingWall = io.BuildingWall == null ? null : new(io.BuildingWall);
@@ -89,8 +89,8 @@ namespace OpenLoco.Gui.ViewModels
 				BuildingWallEntrance = BuildingWallEntrance?.GetAsUnderlyingType(),
 				MinNumBuildings = MinNumBuildings,
 				MaxNumBuildings = MaxNumBuildings,
-				NumBuildingParts = (uint8_t)BuildingAnimations.Count,
-				NumBuildingVariations = (uint8_t)BuildingVariations.Count,
+				NumBuildingParts = (uint8_t)BuildingPartAnimations.Count,
+				NumBuildingVariations = (uint8_t)BuildingVariationParts.Count,
 				ProducedCargo = ProducedCargo.ToList().ConvertAll(x => x.GetAsUnderlyingType()),
 				RequiredCargo = RequiredCargo.ToList().ConvertAll(x => x.GetAsUnderlyingType()),
 				WallTypes = WallTypes.ToList().ConvertAll(x => x.GetAsUnderlyingType()),

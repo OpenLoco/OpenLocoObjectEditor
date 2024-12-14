@@ -251,8 +251,8 @@ namespace OpenLoco.Gui.Models
 			return true;
 		}
 
-		static Task? indexerTask;
-		static readonly SemaphoreSlim taskLock = new(1, 1);
+		static Task? _indexerTask;
+		static readonly SemaphoreSlim _taskLock = new(1, 1);
 
 		public async Task LoadObjDirectoryAsync(string directory, IProgress<float> progress, bool useExistingIndex)
 		{
@@ -277,10 +277,10 @@ namespace OpenLoco.Gui.Models
 			}
 			finally
 			{
-				_ = taskLock.Release();
+				_ = _taskLock.Release();
 			}
 
-			await indexerTask;
+			await _indexerTask;
 		}
 
 		async Task LoadObjDirectoryAsyncCore(string directory, IProgress<float> progress, bool useExistingIndex)

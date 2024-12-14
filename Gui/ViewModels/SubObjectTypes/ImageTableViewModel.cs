@@ -15,7 +15,6 @@ using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -23,37 +22,6 @@ using Image = SixLabors.ImageSharp.Image;
 
 namespace OpenLoco.Gui.ViewModels
 {
-	public enum ColourSwatches
-	{
-		Black,
-		Bronze,
-		Copper,
-		Yellow,
-		Rose,
-		GrassGreen,
-		AvocadoGreen,
-		Green,
-		Brass,
-		Lavender,
-		Blue,
-		SeaGreen,
-		Purple,
-		Red,
-		Orange,
-		Teal,
-		Brown,
-		Amber,
-		MiscGrey,
-		MiscYellow,
-		PrimaryRemap,
-		SecondaryRemap,
-	}
-
-	public record SpriteOffset(
-		[property: JsonPropertyName("path")] string Path,
-		[property: JsonPropertyName("x")] int16_t X,
-		[property: JsonPropertyName("y")] int16_t Y);
-
 	public class ImageTableViewModel : ReactiveObject, IExtraContentViewModel
 	{
 		readonly IHasG1Elements G1Provider;

@@ -24,11 +24,11 @@ namespace OpenLoco.Dat.Objects
 		[property: LocoStructOffset(0x1A), Browsable(false)] image_id _var_1A,
 		[property: LocoStructOffset(0x1E)] uint8_t NumBuildingParts,
 		[property: LocoStructOffset(0x1F)] uint8_t NumBuildingVariations,
-		[property: LocoStructOffset(0x20), LocoStructVariableLoad, LocoArrayLength(IndustryObject.BuildingHeightCount)] List<uint8_t> BuildingHeights,    // This is the height of a building image
-		[property: LocoStructOffset(0x24), LocoStructVariableLoad, LocoArrayLength(IndustryObject.BuildingAnimationCount)] List<BuildingPartAnimation> BuildingAnimations,
+		[property: LocoStructOffset(0x20), LocoStructVariableLoad, LocoArrayLength(IndustryObject.BuildingHeightCount)] List<uint8_t> BuildingPartHeights,    // This is the height of a building image
+		[property: LocoStructOffset(0x24), LocoStructVariableLoad, LocoArrayLength(IndustryObject.BuildingAnimationCount)] List<BuildingPartAnimation> BuildingPartAnimations,
 		[property: LocoStructOffset(0x28), LocoStructVariableLoad, LocoArrayLength(IndustryObject.AnimationSequencesCount)] List<List<uint8_t>> AnimationSequences, // Access with getAnimationSequence helper method
 		[property: LocoStructOffset(0x38), LocoStructVariableLoad] List<IndustryObjectUnk38> var_38,    // Access with getUnk38 helper method
-		[property: LocoStructOffset(0x3C), LocoStructVariableLoad, LocoArrayLength(IndustryObject.BuildingVariationCount)] List<List<uint8_t>> BuildingVariations,  // Access with getBuildingParts helper method
+		[property: LocoStructOffset(0x3C), LocoStructVariableLoad, LocoArrayLength(IndustryObject.BuildingVariationCount)] List<List<uint8_t>> BuildingVariationParts,  // Access with getBuildingParts helper method
 		[property: LocoStructOffset(0xBC)] uint8_t MinNumBuildings,
 		[property: LocoStructOffset(0xBD)] uint8_t MaxNumBuildings,
 		[property: LocoStructOffset(0xBE), LocoStructVariableLoad] List<uint8_t> Buildings,
@@ -67,8 +67,6 @@ namespace OpenLoco.Dat.Objects
 		public const int MaxRequiredCargoType = 3;
 		public const int MaxWallTypeCount = 4;
 
-		//public List<IndustryObjectUnk38> UnkIndustry38 { get; set; } = [];
-
 		public S5Header? BuildingWall { get; set; }
 
 		public S5Header? BuildingWallEntrance { get; set; }
@@ -81,14 +79,14 @@ namespace OpenLoco.Dat.Objects
 		public ReadOnlySpan<byte> Load(ReadOnlySpan<byte> remainingData)
 		{
 			// part heights
-			BuildingHeights.Clear();
-			BuildingHeights.AddRange(ByteReaderT.Read_Array<uint8_t>(remainingData[..(NumBuildingParts * 1)], NumBuildingParts));
+			BuildingPartHeights.Clear();
+			BuildingPartHeights.AddRange(ByteReaderT.Read_Array<uint8_t>(remainingData[..(NumBuildingParts * 1)], NumBuildingParts));
 			remainingData = remainingData[(NumBuildingParts * 1)..]; // uint8_t*
 
 			// part animations
-			BuildingAnimations.Clear();
+			BuildingPartAnimations.Clear();
 			var buildingAnimationSize = ObjectAttributes.StructSize<BuildingPartAnimation>();
-			BuildingAnimations.AddRange(ByteReader.ReadLocoStructArray(remainingData[..(NumBuildingParts * buildingAnimationSize)], typeof(BuildingPartAnimation), NumBuildingParts, buildingAnimationSize)
+			BuildingPartAnimations.AddRange(ByteReader.ReadLocoStructArray(remainingData[..(NumBuildingParts * buildingAnimationSize)], typeof(BuildingPartAnimation), NumBuildingParts, buildingAnimationSize)
 				.Cast<BuildingPartAnimation>());
 			remainingData = remainingData[(NumBuildingParts * 2)..]; // uint16_t*
 
@@ -119,7 +117,7 @@ namespace OpenLoco.Dat.Objects
 			remainingData = remainingData[1..]; // skip final 0xFF byte
 
 			// variation parts
-			BuildingVariations.Clear();
+			BuildingVariationParts.Clear();
 			for (var i = 0; i < NumBuildingVariations; ++i)
 			{
 				var ptr_1F = 0;
@@ -128,7 +126,7 @@ namespace OpenLoco.Dat.Objects
 					;
 				}
 
-				BuildingVariations.Add(remainingData[..ptr_1F].ToArray().ToList());
+				BuildingVariationParts.Add(remainingData[..ptr_1F].ToArray().ToList());
 				ptr_1F++;
 				remainingData = remainingData[ptr_1F..];
 			}
@@ -188,13 +186,13 @@ namespace OpenLoco.Dat.Objects
 			using (var ms = new MemoryStream())
 			{
 				// part heights
-				foreach (var x in BuildingHeights)
+				foreach (var x in BuildingPartHeights)
 				{
 					ms.WriteByte(x);
 				}
 
 				// part animations
-				foreach (var x in BuildingAnimations)
+				foreach (var x in BuildingPartAnimations)
 				{
 					ms.WriteByte(x.NumFrames);
 					ms.WriteByte(x.AnimationSpeed);
@@ -217,7 +215,7 @@ namespace OpenLoco.Dat.Objects
 				ms.WriteByte(0xFF);
 
 				// variation parts
-				foreach (var x in BuildingVariations)
+				foreach (var x in BuildingVariationParts)
 				{
 					ms.Write(x.ToArray());
 					ms.WriteByte(0xFF);
