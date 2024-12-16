@@ -716,7 +716,7 @@
 						</DockPanel>
 					</Button>
 					<Button Command="{Binding OpenCurrentFolder}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="2" Padding="2" ToolTip.Tip="Open folder">
-						<DockPanel>
+						<DockPanel HorizontalAlignment="Stretch">
 							<materialIcons:MaterialIcon Kind="FolderOpen" Width="24" Height="24" Margin="2" />
 							<TextBlock HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="4" Text="Open folder" />
 						</DockPanel>

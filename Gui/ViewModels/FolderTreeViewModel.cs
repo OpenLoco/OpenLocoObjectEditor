@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using DynamicData;
 using OpenLoco.Dat;
 using OpenLoco.Dat.Data;
 using OpenLoco.Definitions.Web;
@@ -16,6 +17,24 @@ using System.Threading.Tasks;
 
 namespace OpenLoco.Gui.ViewModels
 {
+	public static class ObservableExtensions
+	{
+		public static IObservable<Func<T, bool>> CombineFilters<T>(this IList<IObservable<Func<T, bool>>> filters)
+		{
+			if (filters == null || filters.Count == 0)
+			{
+				return Observable.Return<Func<T, bool>>(x => true); // No filters, always true
+			}
+
+			if (filters.Count == 1)
+			{
+				return filters[0]; // Only one filter, return it directly
+			}
+
+			return filters.CombineLatest().Select(funcs => (Func<T, bool>)(item => funcs.All(func => func(item))));
+		}
+	}
+
 	public class FolderTreeViewModel : ReactiveObject
 	{
 		ObjectEditorModel Model { get; init; }
@@ -43,8 +62,8 @@ namespace OpenLoco.Gui.ViewModels
 		[Reactive]
 		List<FileSystemItemBase> OnlineDirectoryItems { get; set; } = [];
 
-		[Reactive]
-		public ObservableCollection<FileSystemItemBase> DirectoryItems { get; set; }
+		//[Reactive]
+		//public ObservableCollection<FileSystemItemBase> DirectoryItems { get; set; }
 
 		[Reactive]
 		public float IndexOrDownloadProgress { get; set; }
@@ -64,6 +83,125 @@ namespace OpenLoco.Gui.ViewModels
 
 		public string DirectoryFileCount
 			=> $"Objects: {DirectoryItems.Sum(CountNodes)}";
+
+		#region FilteredView
+
+		// (x => x.Filename) property that serves as the unique key for the cache
+		SourceCache<FileSystemItemObject, string> _sourceCache = new(x => x.Filename);
+		ReadOnlyObservableCollection<FileSystemItemObject> _filteredItems;
+		public ReadOnlyObservableCollection<FileSystemItemObject> DirectoryItems => _filteredItems;
+
+		#endregion
+
+		public FolderTreeViewModel(ObjectEditorModel model)
+		{
+			Model = model;
+			Progress.ProgressChanged += (_, progress) => IndexOrDownloadProgress = progress;
+
+			RefreshDirectoryItems = ReactiveCommand.Create(() => ReloadDirectoryAsync(false));
+			OpenCurrentFolder = ReactiveCommand.Create(() => PlatformSpecific.FolderOpenInDesktop(CurrentLocalDirectory));
+
+			//_ = this.WhenAnyValue(o => o.CurrentLocalDirectory)
+			//	//.Skip(1)
+			//	.Subscribe(async _ => await ReloadDirectoryAsync(true));
+
+			//_ = this.WhenAnyValue(o => o.CurrentLocalDirectory)
+			//	//.Skip(1)
+			//	.Subscribe(_ => this.RaisePropertyChanged(nameof(CurrentDirectory)));
+
+			//_ = this.WhenAnyValue(o => o.CurrentLocalDirectory)
+			//	//.Skip(1)
+			//	.Subscribe(_ => UpdateItems(GetDirectoryItemsView()));
+
+			//_ = this.WhenAnyValue(o => o.DisplayMode)
+			//	.Throttle(TimeSpan.FromMilliseconds(1000))
+			//	.Skip(1)
+			//	.Subscribe(async _ => await ReloadDirectoryAsync(true));
+
+			//_ = this.WhenAnyValue(o => o.FilenameFilter)
+			//	.Throttle(TimeSpan.FromMilliseconds(500))
+			//	.Skip(1)
+			//	.Subscribe(async _ => await ReloadDirectoryAsync(true));
+
+			//_ = this.WhenAnyValue(o => o.DirectoryItems)
+			//	.Skip(1)
+			//	.Subscribe(_ => this.RaisePropertyChanged(nameof(DirectoryFileCount)));
+
+			//_ = this.WhenAnyValue(o => o.DirectoryItems)
+			//	.Skip(1)
+			//	.Subscribe(_ => CurrentlySelectedObject = null);
+
+
+			//_ = this.WhenAnyValue(o => o.SelectedTabIndex)
+			//	.Skip(1)
+			//	.Subscribe(_ => SwitchDirectoryItemsView());
+
+			//_ = this.WhenAnyValue(o => o.SelectedTabIndex)
+			//	.Skip(1)
+			//	.Subscribe(_ => this.RaisePropertyChanged(nameof(RecreateText)));
+
+			//_ = this.WhenAnyValue(o => o.SelectedTabIndex)
+			//	.Skip(1)
+			//	.Subscribe(_ => this.RaisePropertyChanged(nameof(CurrentDirectory)));
+
+			//_ = this.WhenAnyValue(o => o.LocalDirectoryItems)
+			//	//.Skip(1)
+			//	.Subscribe(_ => SwitchDirectoryItemsView());
+
+			//_ = this.WhenAnyValue(o => o.OnlineDirectoryItems)
+			//	.Skip(1)
+			//	.Subscribe(_ => SwitchDirectoryItemsView());
+
+			// loads the last-viewed folder
+			//Task.Run(async () => await ReloadDirectoryAsync(true)).GetAwaiter().GetResult();
+			// ... use the result
+			//UpdateItems(LocalDirectoryItems);
+
+			CurrentLocalDirectory = Model.Settings.ObjDataDirectory;
+			Task.Run(async () => await ReloadDirectoryAsync(true)).GetAwaiter().GetResult();
+			foreach (var o in Model.ObjectIndex.Objects.Where(x => (int)x.ObjectType < Limits.kMaxObjectTypes))
+			{
+				_sourceCache.AddOrUpdate(new FileSystemItemObject(o.Filename, o.DatName, FileLocation.Local, o.ObjectSource));
+			}
+
+			var filters = new List<IObservable<Func<FileSystemItemObject, bool>>>();
+
+			var filenameFilter = this.WhenAnyValue(x => x.FilenameFilter)
+				.Throttle(TimeSpan.FromMilliseconds(250))
+				.Select<string, Func<FileSystemItemObject, bool>>(filterText => (fsi) => FilterByFilename(fsi, filterText));
+
+			var locationFilter = this.WhenAnyValue(x => x.SelectedTabIndex)
+				.Throttle(TimeSpan.FromMilliseconds(250))
+				.Select<int, Func<FileSystemItemObject, bool>>(location => (fsi) => FilterByLocation(fsi, SelectedTabIndex == 0 ? FileLocation.Local : FileLocation.Online));
+
+			filters.Add(filenameFilter);
+			filters.Add(locationFilter);
+
+			var megaFilter = filters.CombineFilters();
+
+			// Apply the filter and create the readonly collection
+			_ = _sourceCache.Connect()
+				.Throttle(TimeSpan.FromMilliseconds(250))
+				.Filter(megaFilter)
+				.SortBy(p => p.DisplayName) //Optional Sorting
+				.ObserveOn(RxApp.MainThreadScheduler) // Ensure updates on the UI thread
+				.Bind(out _filteredItems)
+			.Subscribe(); // Important: Subscribe to activate the pipeline
+
+		}
+
+		bool FilterByFilename(FileSystemItemObject fsi, string filterText)
+			=> string.IsNullOrWhiteSpace(filterText)
+			|| fsi.DisplayName.Contains(filterText, StringComparison.CurrentCultureIgnoreCase);
+
+		bool FilterByLocation(FileSystemItemObject fsi, FileLocation fileLocation)
+			=> fsi.FileLocation == fileLocation;
+
+		public void UpdateItems(List<FileSystemItemObject> items)
+		{
+			_sourceCache.Clear();
+			_sourceCache.AddOrUpdate(items);
+		}
 
 		public static int CountNodes(FileSystemItemBase fib)
 		{
@@ -89,68 +227,10 @@ namespace OpenLoco.Gui.ViewModels
 			return count;
 		}
 
-		public FolderTreeViewModel(ObjectEditorModel model)
-		{
-			Model = model;
-			Progress.ProgressChanged += (_, progress) => IndexOrDownloadProgress = progress;
-
-			RefreshDirectoryItems = ReactiveCommand.Create(() => ReloadDirectoryAsync(false));
-			OpenCurrentFolder = ReactiveCommand.Create(() => PlatformSpecific.FolderOpenInDesktop(CurrentLocalDirectory));
-
-			_ = this.WhenAnyValue(o => o.CurrentLocalDirectory)
-				.Skip(1)
-				.Subscribe(async _ => await ReloadDirectoryAsync(true));
-
-			_ = this.WhenAnyValue(o => o.CurrentLocalDirectory)
-				.Skip(1)
-				.Subscribe(_ => this.RaisePropertyChanged(nameof(CurrentDirectory)));
-
-			_ = this.WhenAnyValue(o => o.DisplayMode)
-				.Throttle(TimeSpan.FromMilliseconds(1000))
-				.Skip(1)
-				.Subscribe(async _ => await ReloadDirectoryAsync(true));
-
-			_ = this.WhenAnyValue(o => o.FilenameFilter)
-				.Throttle(TimeSpan.FromMilliseconds(500))
-				.Skip(1)
-				.Subscribe(async _ => await ReloadDirectoryAsync(true));
-
-			_ = this.WhenAnyValue(o => o.DirectoryItems)
-				.Skip(1)
-				.Subscribe(_ => this.RaisePropertyChanged(nameof(DirectoryFileCount)));
-
-			_ = this.WhenAnyValue(o => o.DirectoryItems)
-				.Skip(1)
-				.Subscribe(_ => CurrentlySelectedObject = null);
-
-			_ = this.WhenAnyValue(o => o.SelectedTabIndex)
-				.Skip(1)
-				.Subscribe(_ => SwitchDirectoryItemsView());
-
-			_ = this.WhenAnyValue(o => o.SelectedTabIndex)
-				.Skip(1)
-				.Subscribe(_ => this.RaisePropertyChanged(nameof(RecreateText)));
-
-			_ = this.WhenAnyValue(o => o.SelectedTabIndex)
-				.Skip(1)
-				.Subscribe(_ => this.RaisePropertyChanged(nameof(CurrentDirectory)));
-
-			_ = this.WhenAnyValue(o => o.LocalDirectoryItems)
-				//.Skip(1)
-				.Subscribe(_ => SwitchDirectoryItemsView());
-
-			_ = this.WhenAnyValue(o => o.OnlineDirectoryItems)
-				.Skip(1)
-				.Subscribe(_ => SwitchDirectoryItemsView());
-
-			// loads the last-viewed folder
-			CurrentLocalDirectory = Model.Settings.ObjDataDirectory;
-		}
-
-		void SwitchDirectoryItemsView()
-			=> DirectoryItems = SelectedTabIndex == 0
-				? new(LocalDirectoryItems)
-				: new(OnlineDirectoryItems);
+		List<FileSystemItemBase> GetDirectoryItemsView()
+			=> SelectedTabIndex == 0
+				? LocalDirectoryItems
+				: OnlineDirectoryItems;
 
 		async Task ReloadDirectoryAsync(bool useExistingIndex)
 		{
