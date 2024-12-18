@@ -34,6 +34,7 @@
 		<moc:EnumToMaterialIconConverter x:Key="EnumToMaterialIconConverter"/>
 		<moc:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
 		<moc:EnumToBooleanConverter x:Key="EnumToBooleanConverter"/>
+		<moc:EnumFlagToBooleanConverter x:Key="EnumFlagToBooleanConverter"/>
 	</Window.Resources>
 
 	<Window.Styles>
@@ -179,8 +180,8 @@
 							</DockPanel>
 						</TabItem>
 						<TabItem Header="Metadata">
-							<Border Background="{DynamicResource ExpanderContentBackground}" Margin="8">
-								<DockPanel Margin="8">
+							<Border Background="{DynamicResource ExpanderContentBackground}" Margin="4">
+								<DockPanel Margin="4">
 									<Grid DataContext="{Binding CurrentObject.Metadata}" DockPanel.Dock="Left">
 										<Grid.ColumnDefinitions>
 											<ColumnDefinition Width="Auto"/>
@@ -564,7 +565,7 @@
 								<Slider Minimum="1" Maximum="10" Value="{Binding Zoom}" />
 							</StackPanel>
 							<ScrollViewer>
-								<pgc:PropertyGrid x:Name="propertyGrid_imageProps" Margin="8" MinWidth="256" DataContext="{Binding SelectedG1Element}" DockPanel.Dock="Right" ShowTitle="False" AllowFilter="False" AllowQuickFilter="False" ShowStyle="Tiled"></pgc:PropertyGrid>
+								<pgc:PropertyGrid x:Name="propertyGrid_imageProps" Margin="4" MinWidth="256" DataContext="{Binding SelectedG1Element}" DockPanel.Dock="Right" ShowTitle="False" AllowFilter="False" AllowQuickFilter="False" ShowStyle="Tiled"></pgc:PropertyGrid>
 							</ScrollViewer>
 						</DockPanel>
 					</Border>
@@ -672,7 +673,7 @@
 				<ToggleSwitch Margin="4" IsChecked="{Binding IsDarkTheme, Mode=TwoWay}" OnContent="{materialIcons:MaterialIconExt Kind=MoonWaningCrescent}" OffContent="{materialIcons:MaterialIconExt Kind=WeatherSunny}" />
 			</StackPanel>
 		</DockPanel>
-		<Expander Header="Logs" Padding="0" ExpandDirection="Down" DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" Margin="8" MaxHeight="512">
+		<Expander Header="Logs" Padding="0" ExpandDirection="Down" DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" Margin="4" MaxHeight="512">
 			<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
 				<DataGrid MinHeight="256" MaxHeight="1024" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ItemsSource="{Binding Logs}" AutoGenerateColumns="True" CanUserReorderColumns="True" CanUserResizeColumns="True" CanUserSortColumns="False"/>
 			</ScrollViewer>
@@ -696,7 +697,7 @@
 					</TabItem.Header>
 				</TabItem>
 			</TabStrip>
-			<Grid DockPanel.Dock="Left" Margin="8">
+			<Grid DockPanel.Dock="Left" Margin="4">
 				<Grid.RowDefinitions>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
@@ -733,9 +734,9 @@
 							<ColumnDefinition Width="*"/>
 							<ColumnDefinition Width="*"/>
 						</Grid.ColumnDefinitions>
-						<RadioButton Grid.Column="0" HorizontalAlignment="Center"  GroupName="DisplayModeGroup" Content="Vanilla" IsChecked="{Binding DisplayMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static vm:ObjectDisplayMode.Vanilla}}"/>
-						<RadioButton Grid.Column="1" HorizontalAlignment="Center"  GroupName="DisplayModeGroup" Content="Custom" IsChecked="{Binding DisplayMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static vm:ObjectDisplayMode.Custom}}"/>
-						<RadioButton Grid.Column="2" HorizontalAlignment="Center"  GroupName="DisplayModeGroup" Content="All" IsChecked="{Binding DisplayMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static vm:ObjectDisplayMode.All}}"/>
+						<CheckBox Grid.Column="0" HorizontalAlignment="Center" Content="Vanilla" IsChecked="{Binding DisplayMode, Converter={StaticResource EnumFlagToBooleanConverter}, ConverterParameter={x:Static vm:ObjectDisplayMode.Vanilla}}"/>
+						<CheckBox Grid.Column="1" HorizontalAlignment="Center" Content="OpenLoco" IsChecked="{Binding DisplayMode, Converter={StaticResource EnumFlagToBooleanConverter}, ConverterParameter={x:Static vm:ObjectDisplayMode.OpenLoco}}"/>
+						<CheckBox Grid.Column="2" HorizontalAlignment="Center" Content="Custom" IsChecked="{Binding DisplayMode, Converter={StaticResource EnumFlagToBooleanConverter}, ConverterParameter={x:Static vm:ObjectDisplayMode.Custom}}"/>
 					</Grid>
 				</Border>
 				<Border Grid.Row="5" BorderThickness="1" Margin="2">
@@ -749,7 +750,7 @@
 				</Border>
 			</Grid>
 		</DockPanel>
-		<Border Margin="8" BorderThickness="1">
+		<Border Margin="4" BorderThickness="1">
 			<DockPanel DataContext="{Binding CurrentEditorModel}" Margin="4">
 				<DockPanel DockPanel.Dock="Top">
 					<Button Command="{Binding ReloadCommand}" Margin="4" Padding="2" DockPanel.Dock="Left">

@@ -54,16 +54,13 @@ namespace OpenLoco.Gui.ViewModels
 		public string FilenameFilter { get; set; } = string.Empty;
 
 		[Reactive]
-		public ObjectDisplayMode DisplayMode { get; set; } = ObjectDisplayMode.All;
+		public ObjectDisplayMode DisplayMode { get; set; } = ObjectDisplayMode.Vanilla | ObjectDisplayMode.Custom | ObjectDisplayMode.OpenLoco;
 
 		[Reactive]
 		List<FileSystemItemBase> LocalDirectoryItems { get; set; } = [];
 
 		[Reactive]
 		List<FileSystemItemBase> OnlineDirectoryItems { get; set; } = [];
-
-		//[Reactive]
-		//public ObservableCollection<FileSystemItemBase> DirectoryItems { get; set; }
 
 		[Reactive]
 		public float IndexOrDownloadProgress { get; set; }
@@ -73,8 +70,6 @@ namespace OpenLoco.Gui.ViewModels
 		public ReactiveCommand<Unit, Task> RefreshDirectoryItems { get; }
 
 		public ReactiveCommand<Unit, Unit> OpenCurrentFolder { get; }
-
-		public ObservableCollection<ObjectDisplayMode> DisplayModeItems { get; } = [.. Enum.GetValues<ObjectDisplayMode>()];
 
 		[Reactive]
 		public int SelectedTabIndex { get; set; }
@@ -101,27 +96,27 @@ namespace OpenLoco.Gui.ViewModels
 			RefreshDirectoryItems = ReactiveCommand.Create(() => ReloadDirectoryAsync(false));
 			OpenCurrentFolder = ReactiveCommand.Create(() => PlatformSpecific.FolderOpenInDesktop(CurrentLocalDirectory));
 
-			//_ = this.WhenAnyValue(o => o.CurrentLocalDirectory)
-			//	//.Skip(1)
-			//	.Subscribe(async _ => await ReloadDirectoryAsync(true));
+			_ = this.WhenAnyValue(o => o.CurrentLocalDirectory)
+				.Skip(1)
+				.DistinctUntilChanged()
+				.Subscribe(async _ => await ReloadDirectoryAsync(true).ContinueWith((t) =>
+				{
+					var index = SelectedTabIndex == 0 ? Model.ObjectIndex : Model.ObjectIndexOnline;
+					if (index == null)
+					{
+						return;
+					}
 
-			//_ = this.WhenAnyValue(o => o.CurrentLocalDirectory)
-			//	//.Skip(1)
-			//	.Subscribe(_ => this.RaisePropertyChanged(nameof(CurrentDirectory)));
+					_sourceCache.Clear();
+					foreach (var o in index.Objects.Where(x => (int)x.ObjectType < Limits.kMaxObjectTypes))
+					{
+						_sourceCache.AddOrUpdate(new FileSystemItemObject(o.Filename, o.DatName, FileLocation.Local, o.ObjectSource));
+					}
+				}));
 
-			//_ = this.WhenAnyValue(o => o.CurrentLocalDirectory)
-			//	//.Skip(1)
-			//	.Subscribe(_ => UpdateItems(GetDirectoryItemsView()));
-
-			//_ = this.WhenAnyValue(o => o.DisplayMode)
-			//	.Throttle(TimeSpan.FromMilliseconds(1000))
-			//	.Skip(1)
-			//	.Subscribe(async _ => await ReloadDirectoryAsync(true));
-
-			//_ = this.WhenAnyValue(o => o.FilenameFilter)
-			//	.Throttle(TimeSpan.FromMilliseconds(500))
-			//	.Skip(1)
-			//	.Subscribe(async _ => await ReloadDirectoryAsync(true));
+			_ = this.WhenAnyValue(o => o.CurrentLocalDirectory)
+				.DistinctUntilChanged()
+				.Subscribe(_ => this.RaisePropertyChanged(nameof(CurrentDirectory)));
 
 			//_ = this.WhenAnyValue(o => o.DirectoryItems)
 			//	.Skip(1)
@@ -131,26 +126,13 @@ namespace OpenLoco.Gui.ViewModels
 			//	.Skip(1)
 			//	.Subscribe(_ => CurrentlySelectedObject = null);
 
+			_ = this.WhenAnyValue(o => o.SelectedTabIndex)
+				.Skip(1)
+				.Subscribe(_ => this.RaisePropertyChanged(nameof(RecreateText)));
 
-			//_ = this.WhenAnyValue(o => o.SelectedTabIndex)
-			//	.Skip(1)
-			//	.Subscribe(_ => SwitchDirectoryItemsView());
-
-			//_ = this.WhenAnyValue(o => o.SelectedTabIndex)
-			//	.Skip(1)
-			//	.Subscribe(_ => this.RaisePropertyChanged(nameof(RecreateText)));
-
-			//_ = this.WhenAnyValue(o => o.SelectedTabIndex)
-			//	.Skip(1)
-			//	.Subscribe(_ => this.RaisePropertyChanged(nameof(CurrentDirectory)));
-
-			//_ = this.WhenAnyValue(o => o.LocalDirectoryItems)
-			//	//.Skip(1)
-			//	.Subscribe(_ => SwitchDirectoryItemsView());
-
-			//_ = this.WhenAnyValue(o => o.OnlineDirectoryItems)
-			//	.Skip(1)
-			//	.Subscribe(_ => SwitchDirectoryItemsView());
+			_ = this.WhenAnyValue(o => o.SelectedTabIndex)
+				.Skip(1)
+				.Subscribe(_ => this.RaisePropertyChanged(nameof(CurrentDirectory)));
 
 			// loads the last-viewed folder
 			//Task.Run(async () => await ReloadDirectoryAsync(true)).GetAwaiter().GetResult();
@@ -158,11 +140,6 @@ namespace OpenLoco.Gui.ViewModels
 			//UpdateItems(LocalDirectoryItems);
 
 			CurrentLocalDirectory = Model.Settings.ObjDataDirectory;
-			Task.Run(async () => await ReloadDirectoryAsync(true)).GetAwaiter().GetResult();
-			foreach (var o in Model.ObjectIndex.Objects.Where(x => (int)x.ObjectType < Limits.kMaxObjectTypes))
-			{
-				_sourceCache.AddOrUpdate(new FileSystemItemObject(o.Filename, o.DatName, FileLocation.Local, o.ObjectSource));
-			}
 
 			var filters = new List<IObservable<Func<FileSystemItemObject, bool>>>();
 
@@ -172,35 +149,52 @@ namespace OpenLoco.Gui.ViewModels
 
 			var locationFilter = this.WhenAnyValue(x => x.SelectedTabIndex)
 				.Throttle(TimeSpan.FromMilliseconds(250))
-				.Select<int, Func<FileSystemItemObject, bool>>(location => (fsi) => FilterByLocation(fsi, SelectedTabIndex == 0 ? FileLocation.Local : FileLocation.Online));
+				.Select<int, Func<FileSystemItemObject, bool>>(location => (fsi) => FilterByLocation(fsi, location == 0 ? FileLocation.Local : FileLocation.Online));
+
+			var sourceFilter = this.WhenAnyValue(x => x.DisplayMode)
+				.Throttle(TimeSpan.FromMilliseconds(250))
+				.Select<ObjectDisplayMode, Func<FileSystemItemObject, bool>>(source => (fsi) => FilterByObjectSource(fsi, source));
 
 			filters.Add(filenameFilter);
 			filters.Add(locationFilter);
+			filters.Add(sourceFilter);
 
 			var megaFilter = filters.CombineFilters();
 
 			// Apply the filter and create the readonly collection
 			_ = _sourceCache.Connect()
-				.Throttle(TimeSpan.FromMilliseconds(250))
 				.Filter(megaFilter)
 				.SortBy(p => p.DisplayName) //Optional Sorting
 				.ObserveOn(RxApp.MainThreadScheduler) // Ensure updates on the UI thread
 				.Bind(out _filteredItems)
 			.Subscribe(); // Important: Subscribe to activate the pipeline
-
 		}
 
-		bool FilterByFilename(FileSystemItemObject fsi, string filterText)
+		static bool FilterByFilename(FileSystemItemObject fsi, string filterText)
 			=> string.IsNullOrWhiteSpace(filterText)
 			|| fsi.DisplayName.Contains(filterText, StringComparison.CurrentCultureIgnoreCase);
 
-		bool FilterByLocation(FileSystemItemObject fsi, FileLocation fileLocation)
+		static bool FilterByLocation(FileSystemItemObject fsi, FileLocation fileLocation)
 			=> fsi.FileLocation == fileLocation;
 
-		public void UpdateItems(List<FileSystemItemObject> items)
+		static bool FilterByObjectSource(FileSystemItemObject fsi, ObjectDisplayMode displayMode)
 		{
-			_sourceCache.Clear();
-			_sourceCache.AddOrUpdate(items);
+			if (displayMode.HasFlag(ObjectDisplayMode.Vanilla) && fsi.ObjectSource is ObjectSource.LocomotionGoG or ObjectSource.LocomotionSteam)
+			{
+				return true;
+			}
+
+			if (displayMode.HasFlag(ObjectDisplayMode.OpenLoco) && fsi.ObjectSource == ObjectSource.OpenLoco)
+			{
+				return true;
+			}
+
+			if (displayMode.HasFlag(ObjectDisplayMode.Custom) && fsi.ObjectSource == ObjectSource.Custom)
+			{
+				return true;
+			}
+
+			return false;
 		}
 
 		public static int CountNodes(FileSystemItemBase fib)
@@ -227,11 +221,6 @@ namespace OpenLoco.Gui.ViewModels
 			return count;
 		}
 
-		List<FileSystemItemBase> GetDirectoryItemsView()
-			=> SelectedTabIndex == 0
-				? LocalDirectoryItems
-				: OnlineDirectoryItems;
-
 		async Task ReloadDirectoryAsync(bool useExistingIndex)
 		{
 			if (SelectedTabIndex == 0)
@@ -256,11 +245,11 @@ namespace OpenLoco.Gui.ViewModels
 			}
 
 			await Model.LoadObjDirectoryAsync(directory, Progress, useExistingIndex).ConfigureAwait(false);
-			LocalDirectoryItems = ConstructTreeView(
-				Model.ObjectIndex.Objects.Where(x => (int)x.ObjectType < Limits.kMaxObjectTypes),
-				FilenameFilter,
-				DisplayMode,
-				FileLocation.Local);
+			//LocalDirectoryItems = ConstructTreeView(
+			//	Model.ObjectIndex.Objects.Where(x => (int)x.ObjectType < Limits.kMaxObjectTypes),
+			//	FilenameFilter,
+			//	DisplayMode,
+			//	FileLocation.Local);
 		}
 
 		async Task LoadOnlineDirectoryAsync(bool useExistingIndex)
@@ -278,16 +267,17 @@ namespace OpenLoco.Gui.ViewModels
 					.ToList());
 			}
 
-			if (Model.ObjectIndexOnline != null)
-			{
-				OnlineDirectoryItems = ConstructTreeView(
-					Model.ObjectIndexOnline.Objects.Where(x => (int)x.ObjectType < Limits.kMaxObjectTypes),
-					FilenameFilter,
-					DisplayMode,
-					FileLocation.Online);
-			}
+			//if (Model.ObjectIndexOnline != null)
+			//{
+			//	OnlineDirectoryItems = ConstructTreeView(
+			//		Model.ObjectIndexOnline.Objects.Where(x => (int)x.ObjectType < Limits.kMaxObjectTypes),
+			//		FilenameFilter,
+			//		DisplayMode,
+			//		FileLocation.Online);
+			//}
 		}
 
+		/*
 		static List<FileSystemItemBase> ConstructTreeView(IEnumerable<ObjectIndexEntry> index, string filenameFilter, ObjectDisplayMode displayMode, FileLocation fileLocation)
 		{
 			var result = new List<FileSystemItemBase>();
@@ -340,5 +330,6 @@ namespace OpenLoco.Gui.ViewModels
 
 			return result;
 		}
+		*/
 	}
 }
