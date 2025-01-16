@@ -16,6 +16,12 @@ using System.IO.Compression;
 
 namespace OpenLoco.ObjectService
 {
+	public static class ContentTypes
+	{
+		public const string OctetStream = "application/octet-stream";
+		public const string Zip = "application/zip";
+	}
+
 	public class Server
 	{
 		public Server(ServerSettings settings)
@@ -206,7 +212,7 @@ namespace OpenLoco.ObjectService
 
 			memoryStream.Position = 0; // Reset stream position for reading
 			var bytes = memoryStream.ToArray();
-			return Results.File(bytes, "application/zip", "images.zip");
+			return Results.File(bytes, ContentTypes.Zip, "images.zip");
 		}
 
 		// eg: https://localhost:7230/v1/objects/getobject?uniqueObjectId=246263256&returnObjBytes=false
@@ -273,26 +279,26 @@ namespace OpenLoco.ObjectService
 		}
 
 		// eg: https://localhost:7230/v1/objects/originaldatfile?objectName=114&checksum=123
-		public async Task<IResult> GetDatFile([FromQuery] string objectName, [FromQuery] uint checksum, LocoDb db)
+		public async Task<IResult> GetDatFile([FromQuery] string objectName, [FromQuery] uint checksum, LocoDb db, [FromServices] ILogger<Server> logger)
 		{
 			var obj = await db.Objects
 				.Where(x => x.DatName == objectName && x.DatChecksum == checksum)
 				.SingleOrDefaultAsync();
 
-			return ReturnFile(obj);
+			return ReturnFile(obj, logger);
 		}
 
 		// eg: https://localhost:7230/v1/objects/getobjectfile?objectName=114&checksum=123
-		public async Task<IResult> GetObjectFile([FromQuery] int uniqueObjectId, LocoDb db)
+		public async Task<IResult> GetObjectFile([FromQuery] int uniqueObjectId, LocoDb db, [FromServices] ILogger<Server> logger)
 		{
 			var obj = await db.Objects
 				.Where(x => x.Id == uniqueObjectId)
 				.SingleOrDefaultAsync();
 
-			return ReturnFile(obj);
+			return ReturnFile(obj, logger);
 		}
 
-		IResult ReturnFile(TblLocoObject? obj)
+		IResult ReturnFile(TblLocoObject? obj, ILogger<Server> logger)
 		{
 			if (obj == null)
 			{
@@ -309,12 +315,16 @@ namespace OpenLoco.ObjectService
 				return Results.NotFound();
 			}
 
-			const string contentType = "application/octet-stream";
-
 			var path = Path.Combine(ServerFolderManager.ObjectsFolder, index!.Filename);
-			return obj != null && File.Exists(path)
-				? Results.File(path, contentType, Path.GetFileName(path))
-				: Results.NotFound();
+
+			if (!File.Exists(path))
+			{
+				return Results.NotFound();
+			}
+
+			logger.LogInformation("File [{file}] requested", path);
+
+			return Results.File(path, ContentTypes.OctetStream, Path.GetFileName(path));
 		}
 
 		// eg: https://localhost:7230/v1/scenarios/list
