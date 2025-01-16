@@ -5,7 +5,7 @@ using Logger = OpenLoco.Common.Logging.Logger;
 
 namespace OpenLoco.Dat.Tests
 {
-	[TestFixture, Ignore("This is a production test for the live object service. Do not run this as part of the regular unit test suite. Only run this test manually when deploying new versions of the object service.")]
+	[TestFixture, Explicit("This is a production test for the live object service. Do not run this as part of the regular unit test suite. Only run this test manually when deploying new versions of the object service.")]
 	public class LiveServiceTests
 	{
 		HttpClient WebClient { get; set; }
