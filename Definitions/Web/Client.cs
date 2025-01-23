@@ -15,14 +15,14 @@ namespace OpenLoco.Definitions.Web
 		public static async Task<DtoObjectDescriptorWithMetadata?> GetDatAsync(HttpClient client, string objectName, uint checksum, bool returnObjBytes, ILogger? logger = null)
 			=> await SendRequestAsync<DtoObjectDescriptorWithMetadata?>(client, Routes.GetDat + $"?{nameof(objectName)}={objectName}&{nameof(checksum)}={checksum}&{nameof(returnObjBytes)}={returnObjBytes}", logger);
 
-		public static async Task<DtoObjectDescriptorWithMetadata?> GetObjectAsync(HttpClient client, int uniqueObjectId, bool returnObjBytes, ILogger? logger = null)
-			=> await SendRequestAsync<DtoObjectDescriptorWithMetadata?>(client, Routes.GetObject + $"?{nameof(uniqueObjectId)}={uniqueObjectId}&{nameof(returnObjBytes)}={returnObjBytes}", logger);
+		public static async Task<DtoObjectDescriptorWithMetadata?> GetObjectAsync(HttpClient client, int id, bool returnObjBytes, ILogger? logger = null)
+			=> await SendRequestAsync<DtoObjectDescriptorWithMetadata?>(client, Routes.GetObject + $"?{nameof(id)}={id}&{nameof(returnObjBytes)}={returnObjBytes}", logger);
 
 		public static async Task<DtoObjectDescriptorWithMetadata?> GetDatFileAsync(HttpClient client, string objectName, uint checksum, ILogger? logger = null)
 			=> await SendRequestAsync<DtoObjectDescriptorWithMetadata?>(client, Routes.GetDatFile + $"?{nameof(objectName)}={objectName}&{nameof(checksum)}={checksum}", logger);
 
-		public static async Task<DtoObjectDescriptorWithMetadata?> GetObjectFileAsync(HttpClient client, int uniqueObjectId, ILogger? logger = null)
-			=> await SendRequestAsync<DtoObjectDescriptorWithMetadata?>(client, Routes.GetDatFile + $"?{nameof(uniqueObjectId)}={uniqueObjectId}", logger);
+		public static async Task<DtoObjectDescriptorWithMetadata?> GetObjectFileAsync(HttpClient client, int id, ILogger? logger = null)
+			=> await SendRequestAsync<DtoObjectDescriptorWithMetadata?>(client, Routes.GetDatFile + $"?{nameof(id)}={id}", logger);
 
 		static async Task<T?> SendRequestAsync<T>(HttpClient client, string route, ILogger? logger = null)
 		{
