@@ -1,5 +1,6 @@
 using OpenLoco.Dat.Data;
 using OpenLoco.Dat.Objects;
+using PropertyModels.ComponentModel.DataAnnotations;
 using PropertyModels.Extensions;
 using ReactiveUI.Fody.Helpers;
 using System.ComponentModel;
@@ -13,7 +14,7 @@ namespace OpenLoco.Gui.ViewModels
 		[Reactive] public uint8_t TotalOfTypeInScenario { get; set; } // Total industries of this type that can be created in a scenario Note: this is not directly comparable to total industries and varies based on scenario total industries cap settings. At low industries cap this value is ~3x the amount of industries in a scenario.
 		[Reactive] public uint16_t DesignedYear { get; set; }
 		[Reactive] public uint16_t ObsoleteYear { get; set; }
-		[Reactive] public IndustryObjectFlags Flags { get; set; }
+		[Reactive, EnumProhibitValues<IndustryObjectFlags>(IndustryObjectFlags.None)] public IndustryObjectFlags Flags { get; set; }
 		[Reactive] public Colour MapColour { get; set; }
 		[Reactive] public uint32_t Colours { get; set; } // bitset
 		[Reactive, Category("Production")] public BindingList<IndustryObjectProductionRateRange> InitialProductionRate { get; set; }

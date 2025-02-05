@@ -1,4 +1,5 @@
-﻿using OpenLoco.Dat.Objects;
+using OpenLoco.Dat.Objects;
+using PropertyModels.ComponentModel.DataAnnotations;
 using ReactiveUI.Fody.Helpers;
 using System.ComponentModel;
 using System.Linq;
@@ -7,8 +8,8 @@ namespace OpenLoco.Gui.ViewModels
 {
 	public class RoadViewModel : LocoObjectViewModel<RoadObject>
 	{
-		[Reactive] public RoadObjectFlags Flags { get; set; }
-		[Reactive] public RoadTraitFlags RoadPieces { get; set; }
+		[Reactive, EnumProhibitValues<RoadObjectFlags>(RoadObjectFlags.None)] public RoadObjectFlags Flags { get; set; }
+		[Reactive, EnumProhibitValues<RoadTraitFlags>(RoadTraitFlags.None)] public RoadTraitFlags RoadPieces { get; set; }
 		[Reactive] public Speed16 MaxSpeed { get; set; }
 		[Reactive] public uint8_t PaintStyle { get; set; }
 		[Reactive] public uint8_t DisplayOffset { get; set; }

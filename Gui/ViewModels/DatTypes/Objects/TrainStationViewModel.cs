@@ -1,4 +1,5 @@
 using OpenLoco.Dat.Objects;
+using PropertyModels.ComponentModel.DataAnnotations;
 using ReactiveUI.Fody.Helpers;
 using System.ComponentModel;
 using System.Linq;
@@ -9,10 +10,10 @@ namespace OpenLoco.Gui.ViewModels
 	{
 		[Reactive] public uint8_t PaintStyle { get; set; }
 		[Reactive] public uint8_t Height { get; set; }
-		[Reactive] public TrackTraitFlags TrackPieces { get; set; }
+		[Reactive, EnumProhibitValues<TrackTraitFlags>(TrackTraitFlags.None)] public TrackTraitFlags TrackPieces { get; set; }
 		[Reactive] public uint16_t DesignedYear { get; set; }
 		[Reactive] public uint16_t ObsoleteYear { get; set; }
-		[Reactive] public TrainStationObjectFlags Flags { get; set; }
+		[Reactive, EnumProhibitValues<TrainStationObjectFlags>(TrainStationObjectFlags.None)] public TrainStationObjectFlags Flags { get; set; }
 		[Reactive] public BindingList<uint32_t> ImageOffsets { get; set; }
 		[Reactive, Category("Cost")] public int16_t BuildCostFactor { get; set; }
 		[Reactive, Category("Cost")] public int16_t SellCostFactor { get; set; }

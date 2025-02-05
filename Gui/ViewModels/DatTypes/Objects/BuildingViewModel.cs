@@ -1,5 +1,6 @@
 using OpenLoco.Dat.Data;
 using OpenLoco.Dat.Objects;
+using PropertyModels.ComponentModel.DataAnnotations;
 using PropertyModels.Extensions;
 using ReactiveUI.Fody.Helpers;
 using System.ComponentModel;
@@ -10,7 +11,7 @@ namespace OpenLoco.Gui.ViewModels
 {
 	public class BuildingViewModel : LocoObjectViewModel<BuildingObject>
 	{
-		[Reactive] public BuildingObjectFlags Flags { get; set; }
+		[Reactive, EnumProhibitValues<BuildingObjectFlags>(BuildingObjectFlags.None)] public BuildingObjectFlags Flags { get; set; }
 		[Reactive] public uint32_t Colours { get; set; } // bitset
 		[Reactive] public Colour ScaffoldingColour { get; set; }
 		[Reactive] public uint8_t ScaffoldingSegmentType { get; set; }

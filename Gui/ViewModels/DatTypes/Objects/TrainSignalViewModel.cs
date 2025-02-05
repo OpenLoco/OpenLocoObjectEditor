@@ -1,4 +1,5 @@
 using OpenLoco.Dat.Objects;
+using PropertyModels.ComponentModel.DataAnnotations;
 using ReactiveUI.Fody.Helpers;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -8,7 +9,7 @@ namespace OpenLoco.Gui.ViewModels
 {
 	public class TrainSignalViewModel : LocoObjectViewModel<TrainSignalObject>
 	{
-		[Reactive] public TrainSignalObjectFlags Flags { get; set; }
+		[Reactive, EnumProhibitValues<TrainSignalObjectFlags>(TrainSignalObjectFlags.None)] public TrainSignalObjectFlags Flags { get; set; }
 		[Reactive] public uint8_t AnimationSpeed { get; set; }
 		[Reactive] public uint8_t NumFrames { get; set; }
 		[Reactive, Category("Cost")] public uint8_t CostIndex { get; set; }

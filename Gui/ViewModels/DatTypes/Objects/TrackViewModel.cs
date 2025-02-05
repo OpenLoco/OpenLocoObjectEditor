@@ -1,4 +1,5 @@
 using OpenLoco.Dat.Objects;
+using PropertyModels.ComponentModel.DataAnnotations;
 using ReactiveUI.Fody.Helpers;
 using System.ComponentModel;
 using System.Linq;
@@ -7,9 +8,9 @@ namespace OpenLoco.Gui.ViewModels
 {
 	public class TrackViewModel : LocoObjectViewModel<TrackObject>
 	{
-		[Reactive] public TrackObjectFlags Flags { get; set; }
-		[Reactive] public TrackTraitFlags TrackPieces { get; set; }
-		[Reactive] public TrackTraitFlags StationTrackPieces { get; set; }
+		[Reactive, EnumProhibitValues<TrackObjectFlags>(TrackObjectFlags.None)] public TrackObjectFlags Flags { get; set; }
+		[Reactive, EnumProhibitValues<TrackTraitFlags>(TrackTraitFlags.None)] public TrackTraitFlags TrackPieces { get; set; }
+		[Reactive, EnumProhibitValues<TrackTraitFlags>(TrackTraitFlags.None)] public TrackTraitFlags StationTrackPieces { get; set; }
 		[Reactive] public Speed16 CurveSpeed { get; set; }
 		[Reactive] public uint8_t DisplayOffset { get; set; }
 		[Reactive] public S5HeaderViewModel CompatibleTunnel { get; set; }

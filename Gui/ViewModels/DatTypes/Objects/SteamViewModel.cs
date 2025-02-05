@@ -1,4 +1,5 @@
 using OpenLoco.Dat.Objects;
+using PropertyModels.ComponentModel.DataAnnotations;
 using ReactiveUI.Fody.Helpers;
 using System.ComponentModel;
 using System.Linq;
@@ -8,7 +9,7 @@ namespace OpenLoco.Gui.ViewModels
 	public class SteamViewModel : LocoObjectViewModel<SteamObject>
 	{
 		[Reactive] public uint8_t NumStationaryTicks { get; set; }
-		[Reactive] public SteamObjectFlags Flags { get; set; }
+		[Reactive, EnumProhibitValues<SteamObjectFlags>(SteamObjectFlags.None)] public SteamObjectFlags Flags { get; set; }
 		[Reactive] public uint32_t var_0A { get; set; }
 		[Reactive] public BindingList<S5HeaderViewModel> SoundEffects { get; set; }
 		[Reactive] public BindingList<ImageAndHeight> FrameInfoType0 { get; set; } // may need viewmodel for ImageAndHeight

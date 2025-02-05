@@ -1,5 +1,6 @@
 using OpenLoco.Dat.Objects;
 using OpenLoco.Dat.Types;
+using PropertyModels.ComponentModel.DataAnnotations;
 using ReactiveUI.Fody.Helpers;
 using System.ComponentModel;
 
@@ -7,7 +8,7 @@ namespace OpenLoco.Gui.ViewModels
 {
 	public class DockViewModel : LocoObjectViewModel<DockObject>
 	{
-		[Reactive] public DockObjectFlags Flags { get; set; }
+		[Reactive, EnumProhibitValues<DockObjectFlags>(DockObjectFlags.None)] public DockObjectFlags Flags { get; set; }
 		[Reactive] public uint16_t DesignedYear { get; set; }
 		[Reactive] public uint16_t ObsoleteYear { get; set; }
 		[Reactive] public Pos2 BoatPosition { get; set; }
