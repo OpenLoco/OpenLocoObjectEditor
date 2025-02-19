@@ -4,9 +4,6 @@ namespace OpenLoco.ObjectService
 	// https://github.com/dotnet/AspNetCore.Docs.Samples/blob/main/fundamentals/middleware/rate-limit/WebRateLimitAuth/Models/MyRateLimitOptions.cs
 	public class RateLimitOptions
 	{
-		public const string Name = "ObjectServiceRateLimit";
-		//public int PermitLimit { get; set; } = 1;
-		//public int Window { get; set; } = 10;
 		public int ReplenishmentPeriod { get; set; } = 1;
 		public int QueueLimit { get; set; } = 500;
 		public int TokenLimit { get; set; } = 100;

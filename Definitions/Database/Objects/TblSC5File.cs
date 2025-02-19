@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using OpenLoco.Dat.Data;
+using OpenLoco.Definitions.Database;
 
-namespace OpenLoco.Definitions.Database
+namespace Definitions.Database.Objects
 {
 	// scenarios and landscapes, but no savegames
 	[Index(nameof(Name), IsUnique = true)]
@@ -9,6 +10,6 @@ namespace OpenLoco.Definitions.Database
 	{
 		public ObjectSource ObjectSource { get; set; }
 
-		public ICollection<TblSC5FilePack> SC5FilePacks { get; set; }
+		public ICollection<TblSC5FilePack> SC5FilePacks { get; set; } = [];
 	}
 }

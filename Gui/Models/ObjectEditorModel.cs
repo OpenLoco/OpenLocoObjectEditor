@@ -128,7 +128,7 @@ namespace OpenLoco.Gui.Models
 				{
 					var uniqueObjectId = int.Parse(filesystemItem.Filename);
 
-					if (!OnlineCache.TryGetValue(uniqueObjectId, out var locoObj))
+					if (!OnlineCache.TryGetValue(uniqueObjectId, out var locoObj)) // issue - if an object doesn't download its full file, it's 'header' will remain in cache but unable to attempt redownload
 					{
 						if (WebClient == null)
 						{
@@ -137,35 +137,45 @@ namespace OpenLoco.Gui.Models
 						}
 
 						Logger.Debug($"Didn't find object {filesystemItem.DisplayName} with unique id {uniqueObjectId} in cache - downloading it from {WebClient.BaseAddress}");
-						locoObj = Task.Run(async () => await Client.GetObjectAsync(WebClient, uniqueObjectId, true)).Result;
+						locoObj = Task.Run(async () => await Client.GetObjectAsync(WebClient, uniqueObjectId)).Result;
 
 						if (locoObj == null)
 						{
 							Logger.Error($"Unable to download object {filesystemItem.DisplayName} with unique id {uniqueObjectId} from online - received no data");
 							return false;
 						}
-						else if (string.IsNullOrEmpty(locoObj.DatBytes))
-						{
-							Logger.Warning($"Unable to download object {filesystemItem.DisplayName} with unique id {uniqueObjectId} from online - received no DAT object data. Will still show metadata");
-						}
 						else if (locoObj.ObjectSource is ObjectSource.LocomotionSteam or ObjectSource.LocomotionGoG)
 						{
 							Logger.Warning($"Unable to download object {filesystemItem.DisplayName} with unique id {uniqueObjectId} from online - requested object is a vanilla object and it is illegal to distribute copyright material. Will still show metadata");
 						}
 
-						Logger.Info($"Downloaded object {filesystemItem.DisplayName} with unique id {uniqueObjectId} and added it to the local cache");
-						Logger.Debug($"{filesystemItem.DisplayName} has authors=[{string.Join(", ", locoObj?.Authors?.Select(x => x.Name) ?? [])}], tags=[{string.Join(", ", locoObj?.Tags?.Select(x => x.Name) ?? [])}], objectpacks=[{string.Join(", ", locoObj?.ObjectPacks?.Select(x => x.Name) ?? [])}], licence={locoObj?.Licence}");
-						OnlineCache.Add(uniqueObjectId, locoObj!);
-
-						if (!string.IsNullOrEmpty(locoObj!.DatBytes))
+						// download for real
+						var datFile = Task.Run(async () => await Client.GetObjectFileAsync(WebClient, uniqueObjectId, Logger)).Result;
+						if (datFile == null || datFile.Length == 0)
+						{
+							Logger.Warning($"Unable to download object {filesystemItem.DisplayName} with unique id {uniqueObjectId} from online - received no DAT object data. Will still show metadata");
+						}
+						else
 						{
 							var filename = Path.Combine(Settings.DownloadFolder, $"{locoObj.UniqueName}.dat");
 							if (!File.Exists(filename))
 							{
-								File.WriteAllBytes(filename, Convert.FromBase64String(locoObj.DatBytes));
+								File.WriteAllBytes(filename, datFile);
 								Logger.Info($"Saved the downloaded object {filesystemItem.DisplayName} with unique id {uniqueObjectId} as {filename}");
+
+								var obj = SawyerStreamReader.LoadFullObjectFromStream(datFile, Logger, $"{filesystemItem.Filename}-{filesystemItem.DisplayName}", true);
+								fileInfo = obj.DatFileInfo;
+								locoObject = obj.LocoObject;
+								if (obj.LocoObject == null)
+								{
+									Logger.Warning($"Unable to load {filesystemItem.DisplayName} from the received DAT object data");
+								}
 							}
 						}
+
+						Logger.Info($"Downloaded object {filesystemItem.DisplayName} with unique id {uniqueObjectId} and added it to the local cache");
+						Logger.Debug($"{filesystemItem.DisplayName} has authors=[{string.Join(", ", locoObj?.Authors?.Select(x => x.Name) ?? [])}], tags=[{string.Join(", ", locoObj?.Tags?.Select(x => x.Name) ?? [])}], objectpacks=[{string.Join(", ", locoObj?.ObjectPacks?.Select(x => x.Name) ?? [])}], licence={locoObj?.Licence}");
+						OnlineCache.Add(uniqueObjectId, locoObj!);
 					}
 					else
 					{
@@ -174,26 +184,15 @@ namespace OpenLoco.Gui.Models
 
 					if (locoObj != null)
 					{
-						if (locoObj.DatBytes?.Length > 0)
-						{
-							var obj = SawyerStreamReader.LoadFullObjectFromStream(Convert.FromBase64String(locoObj.DatBytes), Logger, $"{filesystemItem.Filename}-{filesystemItem.DisplayName}", true);
-							fileInfo = obj.DatFileInfo;
-							locoObject = obj.LocoObject;
-							if (obj.LocoObject == null)
-							{
-								Logger.Warning($"Unable to load {filesystemItem.DisplayName} from the received DAT object data");
-							}
-						}
-
 						metadata = new MetadataModel(locoObj.UniqueName, locoObj.DatName, locoObj.DatChecksum)
 						{
 							Description = locoObj.Description,
-							Authors = locoObj.Authors,
+							Authors = locoObj.Authors.Select(x => x.ToTable()).ToList(),
 							CreationDate = locoObj.CreationDate,
 							LastEditDate = locoObj.LastEditDate,
 							UploadDate = locoObj.UploadDate,
-							Tags = locoObj.Tags,
-							ObjectPacks = locoObj.ObjectPacks,
+							Tags = locoObj.Tags.Select(x => x.ToTable()).ToList(),
+							ObjectPacks = locoObj.ObjectPacks.Select(x => x.ToTable()).ToList(),
 							Availability = locoObj.Availability,
 							Licence = locoObj.Licence,
 						};

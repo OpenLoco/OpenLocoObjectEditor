@@ -1,3 +1,4 @@
+using Definitions;
 using OpenLoco.Dat.Data;
 using OpenLoco.Dat.Objects;
 
@@ -15,5 +16,5 @@ namespace OpenLoco.Definitions.DTO
 		string? Description,
 		DateTimeOffset? CreationDate,
 		DateTimeOffset? LastEditDate,
-		DateTimeOffset UploadDate);
+		DateTimeOffset UploadDate) : IHasId;
 }

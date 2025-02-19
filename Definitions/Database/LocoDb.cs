@@ -1,3 +1,4 @@
+using Definitions.Database.Objects;
 using Microsoft.EntityFrameworkCore;
 using OpenLoco.Dat.Types;
 

@@ -3,12 +3,8 @@ using Microsoft.EntityFrameworkCore;
 namespace OpenLoco.Definitions.Database
 {
 	[Index(nameof(Name), IsUnique = true)]
-	public class TblLicence
+	public class TblLicence : DbReferenceObject
 	{
-		public int Id { get; set; }
-
-		public string Name { get; set; }
-
-		public string Text { get; set; }
+		public required string Text { get; set; }
 	}
 }

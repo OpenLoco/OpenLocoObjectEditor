@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using OpenLoco.Dat.Data;
 using OpenLoco.Dat.Objects;
+using OpenLoco.Definitions;
+using OpenLoco.Definitions.Database;
 
-namespace OpenLoco.Definitions.Database
+namespace Definitions.Database.Objects
 {
 	[Index(nameof(DatName), nameof(DatChecksum), IsDescending = [true, false], IsUnique = true)]
 	public class TblLocoObject : DbCoreObject

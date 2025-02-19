@@ -1,7 +1,9 @@
-﻿namespace OpenLoco.Definitions.DTO
+using Definitions;
+
+namespace OpenLoco.Definitions.DTO
 {
 	public record DtoObjectEntry(
 		int Id,
 		string DatName,
-		uint DatChecksum);
+		uint DatChecksum) : IHasId;
 }
